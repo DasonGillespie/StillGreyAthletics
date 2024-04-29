@@ -2,48 +2,27 @@ package main
 
 import (
 	"fmt"
-	"html/template"
-	"log"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
 func main() {
-	fs := http.FileServer(http.Dir("static"))
-	http.Handle("/static/", http.StripPrefix("/static/", fs))
+	// Create a new Gin router
+	r := gin.Default()
 
-	// Define routes
-	http.HandleFunc("/", homeHandler)
+	// Serve static files from the "static" directory
+	//r.Use(static.Serve("/", static.LocalFile("./static", true)))
+	r.Static("/static", "./static")
+	r.LoadHTMLGlob("templates/*")
 
-	// Start the server
-	fmt.Println("Server listening on port 8080...")
-	log.Fatal(http.ListenAndServe(":8080", nil))
-}
+	// Route to serve the HTML file
+	r.GET("/", func(c *gin.Context) {
+		fmt.Println("Rendering home page")
+		c.HTML(http.StatusOK, "home.html", gin.H{})
+	})
 
-func homeHandler(w http.ResponseWriter, r *http.Request) {
+	// Run the server
+	r.Run(":8080")
 
-	pgdata := PageData{
-		Title: "Home",
-	}
-
-	renderTemplate(w, "home", pgdata)
-}
-
-type PageData struct {
-	Title string
-}
-
-// Function to render HTML templates
-func renderTemplate(w http.ResponseWriter, tmpl string, data PageData) {
-	// Parse the template files
-	t, err := template.ParseFiles("templates/base.html", "static/"+tmpl+".html")
-	if err != nil {
-		http.Error(w, "Error loading template files: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	// Execute the template with the provided data
-	err = t.ExecuteTemplate(w, "base", data)
-	if err != nil {
-		http.Error(w, "Error executing template: "+err.Error(), http.StatusInternalServerError)
-	}
 }
